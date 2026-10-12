@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { momentumOf, twoLines } from '../../lib/seedcast/format'
+import { momentumOf } from '../../lib/seedcast/format'
+import { bubbleLabel } from '../../lib/seedcast/label'
 import { packCircles } from '../../lib/seedcast/pack'
 import { AUDIENCE_FILL, SEED, inkOn } from '../../lib/seedcast/theme'
 import type { Audience, SeedcastCluster } from '../../lib/seedcast/types'
@@ -9,7 +10,6 @@ type ColorMode = 'momentum' | 'audience'
 
 const W = 1100
 const H = 600
-const MIN_LABEL_R = 32
 
 function fillFor(c: SeedcastCluster, mode: ColorMode): string {
   if (mode === 'audience') return AUDIENCE_FILL[c.audience]
@@ -73,7 +73,7 @@ export default function BubbleLandscape({ clusters }: { clusters: SeedcastCluste
         {sorted.map((c, i) => {
           const p = layout[i]
           const fill = fillFor(c, mode)
-          const [l1, l2] = twoLines(c.name)
+          const label = bubbleLabel(c.name, p.r)
           return (
             <a
               key={c.id}
@@ -83,10 +83,11 @@ export default function BubbleLandscape({ clusters }: { clusters: SeedcastCluste
               onFocus={() => setHoverId(c.id)}
             >
               <circle cx={p.x} cy={p.y} r={p.r} fill={fill} stroke="#fff" strokeWidth={c.id === active.id ? 3.5 : 2} />
-              {p.r >= MIN_LABEL_R && (
-                <g fontFamily="DM Sans, sans-serif" fontSize={13} fontWeight={700} fill={inkOn(fill)} textAnchor="middle" pointerEvents="none">
-                  <text x={p.x} y={p.y - 2}>{l1}</text>
-                  <text x={p.x} y={p.y + 13}>{l2}</text>
+              {label && (
+                <g fontFamily="DM Sans, sans-serif" fontSize={label.fontSize} fontWeight={700} fill={inkOn(fill)} textAnchor="middle" dominantBaseline="middle" pointerEvents="none">
+                  {label.lines.map((line, k) => (
+                    <text key={k} x={p.x} y={p.y + (k - (label.lines.length - 1) / 2) * label.fontSize * 1.15}>{line}</text>
+                  ))}
                 </g>
               )}
             </a>

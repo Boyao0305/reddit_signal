@@ -21,11 +21,20 @@ export const AUDIENCE_FILL: Record<Audience, string> = {
   Unclear: SEED.steady,
 }
 
-const DARK_FILLS = new Set<string>([SEED.accent, AUDIENCE_FILL.B2B, AUDIENCE_FILL.B2C])
+// Theme-word colors per bubble fill: warm amber on the deep violets, deep
+// violet on the oranges and pale tints. Every pair is at least 4.5:1.
+const LABEL_INK: Record<string, string> = {
+  [SEED.accent]: '#FFC46B',
+  [AUDIENCE_FILL.B2B]: '#F6B96B',
+  [AUDIENCE_FILL.B2C]: '#2A0F52',
+  [AUDIENCE_FILL.Mixed]: '#3A1670',
+  [SEED.fade]: '#3A1670',
+  [SEED.steady]: '#632CA6',
+}
 
 /** Label color that stays readable on a given bubble fill. */
 export function inkOn(fill: string): string {
-  return DARK_FILLS.has(fill) ? '#FFFFFF' : SEED.ink
+  return LABEL_INK[fill] ?? SEED.ink
 }
 
 export const COMPARE_COLORS = ['#632CA6', '#F08A24', '#1E8E8E', '#C2255C'] as const

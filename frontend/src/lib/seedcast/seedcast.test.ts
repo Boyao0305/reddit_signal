@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { buildFixtureClusters, buildFixtureDetail } from './fixtures'
 import { formatRatio, momentumOf, twoLines } from './format'
+import { bubbleLabel } from './label'
 import { packCircles } from './pack'
 import { areaPath, linePath, scaleSeries } from './paths'
 import { rankMovers } from './rank'
 import { parseRoute } from './route'
+import { AUDIENCE_FILL, SEED, inkOn } from './theme'
 
 describe('packCircles', () => {
   const radii = buildFixtureClusters()
@@ -100,5 +102,42 @@ describe('format and route', () => {
     expect(d.history).toHaveLength(52)
     expect(d.share).toHaveLength(52)
     expect(d.sources.reduce((a, s) => a + s.pct, 0)).toBe(100)
+  })
+})
+
+describe('bubbleLabel', () => {
+  it('gives big bubbles the full name, mid bubbles the keyword, tiny ones nothing', () => {
+    expect(bubbleLabel('Test flake duplication', 90)?.lines).toEqual(['Test flake', 'duplication'])
+    expect(bubbleLabel('Test flake duplication', 36)?.lines).toEqual(['Test'])
+    expect(bubbleLabel('Test flake duplication', 12)).toBeNull()
+  })
+
+  it('keeps the font size readable and never wider than the bubble', () => {
+    for (const r of [20, 30, 40, 60, 100, 160]) {
+      const l = bubbleLabel('Cloud bill surprises', r)
+      if (!l) continue
+      expect(l.fontSize).toBeGreaterThanOrEqual(11)
+      expect(l.fontSize).toBeLessThanOrEqual(18)
+      const widest = Math.max(...l.lines.map((x) => x.length)) * l.fontSize * 0.56
+      expect(widest).toBeLessThanOrEqual(r * 1.7 + 0.01)
+    }
+  })
+})
+
+describe('inkOn contrast', () => {
+  const lum = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16)
+    const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => {
+      const x = v / 255
+      return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)
+    })
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+  }
+  it('keeps colored theme words at 4.5:1 or better on every bubble fill', () => {
+    for (const fill of [SEED.accent, SEED.fade, SEED.steady, ...Object.values(AUDIENCE_FILL)]) {
+      const a = lum(fill)
+      const b = lum(inkOn(fill))
+      expect((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)).toBeGreaterThanOrEqual(4.5)
+    }
   })
 })
