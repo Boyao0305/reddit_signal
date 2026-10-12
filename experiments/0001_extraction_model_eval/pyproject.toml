@@ -1,0 +1,14 @@
+[project]
+name = "exp-0001-extraction-model-eval"
+version = "0.1.0"
+description = "Experiment 0001: compare OpenRouter models on the production pain-extraction prompt"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "httpx>=0.27",
+    "numpy>=1.26",
+    "psycopg[binary]>=3.2",
+    "sentence-transformers>=3.0",
+]
+
+[tool.uv]
+package = false

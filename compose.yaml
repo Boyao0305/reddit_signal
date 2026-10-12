@@ -1,0 +1,89 @@
+# reddit_signal services.
+#
+#   docker compose up -d                       # postgres, api, workers
+#   docker compose run --rm cli status         # operator commands (profile "cli")
+#
+# Configuration: the only variable the services need is DATABASE_URL, in the env file below.
+# Everything else lives in the database table system_settings (`cli settings ...`).
+#
+# Variables read by this file (all optional):
+#   REDDIT_SIGNAL_ENV_FILE   env file with DATABASE_URL            (default ./reddit_signal.env)
+#   REDDIT_SIGNAL_PGDATA     Postgres data: a named volume or a host path (default: volume "pgdata")
+#   POSTGRES_PASSWORD        only used when initialising a new, empty database
+
+name: reddit_signal
+
+x-app: &app
+  env_file: ${REDDIT_SIGNAL_ENV_FILE:-./reddit_signal.env}
+  restart: unless-stopped
+  depends_on:
+    postgres:
+      condition: service_healthy
+
+x-worker: &worker                   # hostname = stable worker id in `cli status`
+  <<: *app
+  build: { context: ., target: worker }
+  image: reddit_signal-worker
+  stop_grace_period: 40s            # the worker gives a running job 20 s to stop before killing it
+  volumes:
+    - hf-cache:/var/cache/reddit_signal
+
+services:
+  postgres:
+    # Debian 12 build on purpose: the existing data directory was created under its glibc (ADR 0002).
+    image: pgvector/pgvector:pg18-bookworm
+    restart: unless-stopped
+    stop_grace_period: 2m           # let Postgres shut down cleanly
+    shm_size: 1g
+    environment:
+      PGDATA: /var/lib/postgresql/18/docker/pgdata
+      POSTGRES_USER: reddit_signal
+      POSTGRES_DB: reddit_signal
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - ${REDDIT_SIGNAL_PGDATA:-pgdata}:/var/lib/postgresql/18/docker/pgdata
+    ports:
+      - "127.0.0.1:5433:5432"       # host-only, for the SSH tunnel and psql
+    mem_limit: 6g
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  api:
+    <<: *app
+    build: { context: ., target: api }
+    image: reddit_signal-api
+    ports:
+      - "127.0.0.1:8080:8080"       # nginx on the host proxies to this
+    mem_limit: 1g
+
+  worker-pipeline:                  # scheduler, daily and monthly
+    <<: *worker
+    hostname: worker-pipeline
+    environment: { REDDIT_SIGNAL_WORKER_LANE: pipeline }
+    mem_limit: 6g                   # monthly clustering is the peak
+
+  worker-extraction:                # manual and backlog extraction jobs
+    <<: *worker
+    hostname: worker-extraction
+    environment: { REDDIT_SIGNAL_WORKER_LANE: extraction }
+    mem_limit: 3g
+
+  worker-backfill:                  # historical source backfill chunks
+    <<: *worker
+    hostname: worker-backfill
+    environment: { REDDIT_SIGNAL_WORKER_LANE: source-backfill }
+    mem_limit: 2g
+
+  cli:
+    <<: *worker
+    profiles: ["cli"]
+    restart: "no"
+    entrypoint: ["python", "-m", "reddit_signal.cli"]
+    command: ["status"]
+
+volumes:
+  pgdata:
+  hf-cache:

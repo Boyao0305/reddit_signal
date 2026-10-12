@@ -1,0 +1,4 @@
+# Reddit / Hacker News content and model outputs: never commit.
+data/
+.venv/
+__pycache__/

@@ -1,0 +1,1 @@
+1. some clusters has viability score = 0

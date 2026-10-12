@@ -1,0 +1,116 @@
+[project]
+name = "reddit-signal"
+version = "0.1.0"
+description = "Find recurring pain points in Reddit and Hacker News discussions, cluster them, and rank them as product opportunities."
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+# Pinned to the versions running in production on 2026-10-10 (worker venv, Python 3.11.15).
+dependencies = [
+    "bcrypt==5.0.0",
+    "beautifulsoup4==4.14.3",
+    "fastapi==0.136.1",
+    "httpx==0.28.1",
+    "lxml==6.1.0",
+    "numpy==2.4.4",
+    "openai==2.33.0",
+    "pgvector==0.4.2",
+    "psycopg2-binary==2.9.12",
+    "pydantic==2.13.3",
+    "python-dotenv==1.2.2",
+    "requests==2.33.1",
+    "uvicorn[standard]==0.46.0",
+]
+
+[project.optional-dependencies]
+# Heavy ML stack used only by the worker (extraction scoring, embeddings, clustering).
+worker = [
+    "hdbscan==0.8.42",
+    "numba==0.65.1",
+    "pynndescent==0.6.0",
+    "scikit-learn==1.8.0",
+    "scipy==1.17.1",
+    "sentence-transformers==5.4.1",
+    "spacy==3.8.14",
+    "en-core-web-sm",
+    "torch==2.11.0",
+    "transformers==5.7.0",
+    "umap-learn==0.5.12",
+    "vaderSentiment==3.3.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==9.0.3",
+    "ruff",
+    "import-linter",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/reddit_signal"]
+
+[tool.uv]
+default-groups = ["dev"]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]          # scripts/ is imported by a few tests until phase 2 retires it
+addopts = "-q --import-mode=importlib"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.importlinter]
+root_package = "reddit_signal"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Core is pure: no I/O, no settings, no database (CONVENTIONS.md §1.3)"
+type = "forbidden"
+source_modules = ["reddit_signal.core"]
+forbidden_modules = [
+    "reddit_signal.db", "reddit_signal.config", "reddit_signal.runtime_settings",
+    "reddit_signal.pipeline_jobs", "reddit_signal.repositories", "reddit_signal.sources",
+    "reddit_signal.pain_extraction", "reddit_signal.clustering", "reddit_signal.temporal",
+    "reddit_signal.dashboard", "psycopg2", "psycopg", "httpx", "requests", "openai",
+]
+
+[[tool.importlinter.contracts]]
+name = "Schemas import nothing from the package (CONVENTIONS.md §6)"
+type = "forbidden"
+source_modules = ["reddit_signal.schemas"]
+forbidden_modules = [
+    "reddit_signal.core", "reddit_signal.db", "reddit_signal.config", "reddit_signal.runtime_settings",
+    "reddit_signal.pipeline_jobs", "reddit_signal.repositories", "reddit_signal.worker",
+]
+
+[[tool.importlinter.contracts]]
+name = "Shared code does not import containers (CONVENTIONS.md §2.2)"
+type = "forbidden"
+source_modules = [
+    "reddit_signal.core", "reddit_signal.schemas", "reddit_signal.db", "reddit_signal.config",
+    "reddit_signal.repositories", "reddit_signal.pipeline_steps", "reddit_signal.job_recorder",
+    "reddit_signal.pipeline_jobs", "reddit_signal.runtime_settings", "reddit_signal.migrate",
+    "reddit_signal.sources", "reddit_signal.pain_extraction", "reddit_signal.clustering",
+    "reddit_signal.temporal", "reddit_signal.emerging_opportunities", "reddit_signal.dashboard",
+    "reddit_signal.maintenance",
+]
+forbidden_modules = ["reddit_signal.worker", "reddit_signal.cli", "reddit_signal.api"]
+
+[[tool.importlinter.contracts]]
+name = "Containers do not import each other (CONVENTIONS.md §2.2)"
+type = "independence"
+modules = ["reddit_signal.worker", "reddit_signal.cli", "reddit_signal.api"]

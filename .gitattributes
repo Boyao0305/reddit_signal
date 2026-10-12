@@ -1,0 +1,6 @@
+# The code runs on Linux; keep LF in the repository and working tree regardless of client settings.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.zip binary
+*.npz binary

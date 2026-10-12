@@ -1,0 +1,31 @@
+.env
+.env.server.snapshot
+.env.zeabur.generated
+.env.system-settings.generated
+.env.zeabur.generated.bak
+__pycache__/
+*.pyc
+.venv/
+
+# Pipeline run logs
+nohup_*.log
+*.log
+deep_research_output/
+
+.idea/
+.claude/
+node_modules/
+dist/
+logs/
+runtime/
+.current_run_id
+
+*.pem
+*.zip
+
+# uv / tooling
+.ruff_cache/
+.pytest_cache/
+.gemini-research.json
+.DS_Store
+nohup.out
