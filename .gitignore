@@ -1,0 +1,27 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+reddit_signal.env
+*.pem
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.ruff_cache/
+.pytest_cache/
+
+# Frontend
+node_modules/
+dist/
+
+# Logs and local output
+*.log
+nohup.out
+logs/
+
+# Editors and tools
+.idea/
+.claude/
+.DS_Store
