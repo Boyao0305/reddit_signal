@@ -286,7 +286,7 @@ def request_options() -> dict:
     only = _csv(runtime_settings.get_setting("OPENROUTER_PROVIDER_ONLY", ""))
     max_price = _csv(runtime_settings.get_setting("OPENROUTER_MAX_PRICE", ""))
     provider: dict = {}
-    if order:
+    if order and not only:  # an order would make OpenRouter try its first provider instead of spreading load
         provider["order"] = order
         provider["allow_fallbacks"] = (
             runtime_settings.get_setting("OPENROUTER_ALLOW_FALLBACKS", "true").strip().lower() != "false")
