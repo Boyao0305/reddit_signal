@@ -329,11 +329,18 @@ def extract_for_post(pwc: PostWithComments, max_retries: int = 3) -> List[PainOb
                     continue
                 raise UnusableOutput(f"output cut off at max_tokens={max_tokens}")
 
-            return parse_pain_json(choice.message.content or "", pwc)
+            content = choice.message.content or ""
+            if not content.strip():
+                # Seen under high concurrency (60 parallel calls): the provider answers with no text at all.
+                # That says nothing about the post, so retry instead of recording an unusable answer.
+                raise _Retry(f"empty content on post {pwc.post_reddit_id} "
+                             f"(provider {getattr(response, 'provider', None) or 'unknown'})")
+            return parse_pain_json(content, pwc)
 
         except _Retry as exc:
             if attempt == max_retries:
                 raise ExtractionError(f"{exc} (after {max_retries} attempts)")
+            logger.info("%s; retrying (attempt %d/%d)", exc, attempt, max_retries)
             time.sleep(2 ** attempt)
 
         except RateLimitError:

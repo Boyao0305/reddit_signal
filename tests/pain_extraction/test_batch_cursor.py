@@ -34,3 +34,40 @@ def test_each_batch_continues_after_the_previous_one(monkeypatch):
 
     assert seen == [p.id for p in parents]          # every parent exactly once, in order
     assert calls[0] is None and calls[1] == (parents[2].event_time, parents[2].id)
+
+
+def _run_extract(monkeypatch, n_batches, limit):
+    from types import SimpleNamespace
+
+    from reddit_signal.pain_extraction import main
+
+    batches = [[SimpleNamespace(signal_event_id=b * 10 + i) for i in range(3)] for b in range(n_batches)]
+    fetched, extracted = [], []
+
+    def fake_fetch(source, **kw):
+        assert kw["cursor"] is not None                # windowed runs page with the cursor
+        fetched.append(len(fetched))
+        return batches[len(fetched) - 1] if len(fetched) <= len(batches) else []
+
+    def fake_extract(posts, **kw):
+        extracted.append([p.signal_event_id for p in posts])
+        return {"extracted": len(posts), "errors": 0, "total": len(posts)}
+
+    monkeypatch.setattr(main.db, "get_event_bundles_batch_as_pwc", fake_fetch)
+    monkeypatch.setattr(main.extraction, "extract_batch_concurrent", fake_extract)
+    monkeypatch.setattr(main, "_job_event", lambda **_: None)
+    monkeypatch.setattr(main, "get_use_signal_events", lambda: True)
+    window = (T0 - timedelta(days=30), T0)
+    result = main._cmd_ingest_extract_source(source="hackernews", limit=limit, workers=1, window=window)
+    return extracted, result
+
+
+def test_prefetched_batches_are_each_extracted_once_in_order(monkeypatch):
+    extracted, result = _run_extract(monkeypatch, n_batches=4, limit=None)
+    assert extracted == [[0, 1, 2], [10, 11, 12], [20, 21, 22], [30, 31, 32]]
+    assert result["processed"] == 12
+
+
+def test_prefetching_stops_at_the_limit(monkeypatch):
+    extracted, result = _run_extract(monkeypatch, n_batches=4, limit=6)
+    assert len(extracted) == 2 and result["processed"] == 6

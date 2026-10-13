@@ -32,6 +32,7 @@ import argparse
 import logging
 import re
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 
 import psycopg2.extras
@@ -423,12 +424,14 @@ def _cmd_ingest_extract_source(
     )
 
     cursor: dict = {}   # windowed runs continue after the previous batch instead of re-scanning it
-    while True:
-        batch_num += 1
+    if use_signal_events and after is not None:
+        print("  WARNING: --after is ignored on USE_SIGNAL_EVENTS=true ingest path")
+    if not use_signal_events and window is not None:
+        raise RuntimeError("window-based extraction requires USE_SIGNAL_EVENTS=true")
+
+    def fetch_batch():
         if use_signal_events:
-            if after is not None:
-                print("  WARNING: --after is ignored on USE_SIGNAL_EVENTS=true ingest path")
-            posts = db.get_event_bundles_batch_as_pwc(
+            return db.get_event_bundles_batch_as_pwc(
                 source,
                 prompt_version="v1",
                 offset=0,
@@ -437,11 +440,20 @@ def _cmd_ingest_extract_source(
                 window=window,
                 cursor=cursor if window is not None else None,
             )
+        # get_unprocessed_posts_batch returns only posts without pain_objects
+        return db.get_unprocessed_posts_batch(batch_size=batch_size, last_id=last_id, after=after)
+
+    # Windowed runs load the next batch (mostly disk reads of its comments) while the LLM works on the
+    # current one; with the cursor, the next batch does not depend on the current batch's results.
+    prefetch = ThreadPoolExecutor(max_workers=1, thread_name_prefix="prefetch") if window is not None else None
+    pending = prefetch.submit(fetch_batch) if prefetch else None
+    while True:
+        batch_num += 1
+        if prefetch:
+            posts = pending.result()
+            pending = prefetch.submit(fetch_batch) if posts else None
         else:
-            if window is not None:
-                raise RuntimeError("window-based extraction requires USE_SIGNAL_EVENTS=true")
-            # get_unprocessed_posts_batch returns only posts without pain_objects
-            posts = db.get_unprocessed_posts_batch(batch_size=batch_size, last_id=last_id, after=after)
+            posts = fetch_batch()
         if not posts:
             _job_event(
                 message=f"Source {source}: no unprocessed bundles remaining",
@@ -541,6 +553,8 @@ def _cmd_ingest_extract_source(
             if posts_processed >= limit:
                 break
 
+    if prefetch:
+        prefetch.shutdown(wait=False, cancel_futures=True)
     print(
         f"  Source {source} done: {total_extracted} pains extracted, "
         f"{total_errors} errors."

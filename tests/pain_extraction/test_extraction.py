@@ -1,4 +1,4 @@
-"""Extraction request/response handling. Failure shapes come from experiments 0001 and 0005."""
+"""Extraction request/response handling. Failure shapes are ones seen from real models and providers."""
 from types import SimpleNamespace
 
 import pytest
@@ -97,6 +97,20 @@ def test_empty_choices_every_time_is_an_error(fake):
     fake["responses"] = [response(choices=False)] * 3
     with pytest.raises(ExtractionError):
         extraction.extract_for_post(pwc())
+
+
+def test_empty_content_is_retried_like_a_transient_failure(fake):
+    # Under 60 parallel calls the provider sometimes answered with no text at all.
+    fake["responses"] = [response(""), response(f"[{ITEM}]")]
+    assert len(extraction.extract_for_post(pwc())) == 1
+    assert len(fake["calls"]) == 2
+
+
+def test_empty_content_every_time_is_an_error_not_an_unusable_answer(fake):
+    fake["responses"] = [response("  ")] * 3
+    with pytest.raises(ExtractionError) as info:
+        extraction.extract_for_post(pwc())
+    assert not isinstance(info.value, UnusableOutput)
 
 
 def test_unparseable_answer_is_not_retried(fake):
