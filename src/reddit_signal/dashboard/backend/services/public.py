@@ -5,6 +5,8 @@ and no usernames. Cluster ids are lineage-stable: the earliest ancestor along 'c
 """
 from __future__ import annotations
 
+import logging
+import threading
 import time
 from datetime import date, timedelta
 from typing import Any
@@ -28,18 +30,67 @@ AUDIENCE_CLASSIFIER_VERSION = "v1"
 SERIES_WEEKS = 26
 HISTORY_WEEKS = 52
 QUOTES = 6
-CACHE_TTL_SECONDS = 1800   # data changes once a day; the first build takes ~10 s
+CACHE_TTL_SECONDS = 1800   # data changes once a day; building the snapshot takes ~10 s
+
+logger = logging.getLogger(__name__)
 
 _cache: dict[tuple, tuple[float, Any]] = {}
+_refreshing: set[tuple] = set()
+_lock = threading.Lock()
 
 
-def _cached(key: tuple, build):
-    hit = _cache.get(key)
-    if hit and time.monotonic() - hit[0] < CACHE_TTL_SECONDS:
-        return hit[1]
-    value = build()
+def _store(key: tuple, value: Any) -> Any:
     _cache[key] = (time.monotonic(), value)
     return value
+
+
+def _refresh_in_background(key: tuple, build) -> None:
+    """Rebuild one cache entry in a thread; at most one rebuild per key at a time."""
+    with _lock:
+        if key in _refreshing:
+            return
+        _refreshing.add(key)
+
+    def run() -> None:
+        try:
+            _store(key, build())
+        except Exception:  # noqa: BLE001 - keep serving the old value
+            logger.exception("background refresh of %s failed", key)
+        finally:
+            with _lock:
+                _refreshing.discard(key)
+
+    threading.Thread(target=run, name=f"refresh-{key[0]}", daemon=True).start()
+
+
+def _cached(key: tuple, build, *, fallback: Any = None):
+    """Stale-while-revalidate: an expired entry is served while it rebuilds in the background, so no
+    request waits for a rebuild. With no entry yet, ``fallback`` (if given) is served the same way;
+    otherwise the request builds the value itself."""
+    hit = _cache.get(key)
+    if hit is not None:
+        if time.monotonic() - hit[0] >= CACHE_TTL_SECONDS:
+            _refresh_in_background(key, build)
+        return hit[1]
+    if fallback is not None:
+        _refresh_in_background(key, build)
+        return fallback
+    return _store(key, build())
+
+
+def _latest_snapshot() -> dict[str, Any] | None:
+    """The most recently built snapshot of any run (served while a newly promoted run is built)."""
+    entries = [v for k, v in _cache.items() if k[0] == "snapshot"]
+    return max(entries, key=lambda e: e[0])[1] if entries else None
+
+
+def warm() -> None:
+    """Build the snapshot ahead of the first visitor (API startup)."""
+    try:
+        snapshot_payload()
+        logger.info("public snapshot cache warmed")
+    except Exception:  # noqa: BLE001 - the first request will try again
+        logger.exception("warming the public snapshot failed")
 
 
 def _weeks(anchor: date, n: int) -> list[date]:
@@ -85,7 +136,7 @@ def snapshot_payload(*, cluster_run_id: int | None = None, viability_run_id: int
         run, vrun = _run_ids(cluster_run_id, viability_run_id)
     except NoClusterRun:  # new installation before its first monthly run
         return {"updatedAt": None, "clusters": []}
-    return _cached(("snapshot", run, vrun), lambda: _build_snapshot(run, vrun))
+    return _cached(("snapshot", run, vrun), lambda: _build_snapshot(run, vrun), fallback=_latest_snapshot())
 
 
 def _build_snapshot(run: int, vrun: int) -> dict[str, Any]:

@@ -96,3 +96,36 @@ def test_new_installation_without_a_cluster_run_gets_an_empty_snapshot(monkeypat
     monkeypatch.setattr(svc, "default_ids", no_run)
     assert svc.snapshot_payload() == {"updatedAt": None, "clusters": []}
     assert svc.cluster_detail_payload(22001) is None
+
+
+def _wait_for_refreshes():
+    import time as _time
+
+    for _ in range(200):
+        if not svc._refreshing:
+            return
+        _time.sleep(0.01)
+    raise AssertionError("background refresh did not finish")
+
+
+def test_expired_snapshot_is_served_while_it_rebuilds_in_the_background(monkeypatch):
+    first = svc.snapshot_payload()
+    key = next(k for k in svc._cache if k[0] == "snapshot")
+    svc._cache[key] = (svc._cache[key][0] - svc.CACHE_TTL_SECONDS - 1, first)   # expire it
+    built = []
+    monkeypatch.setattr(svc, "_build_snapshot", lambda run, vrun: built.append(run) or {"updatedAt": "new", "clusters": []})
+
+    assert svc.snapshot_payload() is first          # no waiting: the stale value comes back at once
+    _wait_for_refreshes()
+    assert built == [16]
+    assert svc.snapshot_payload()["updatedAt"] == "new"
+
+
+def test_newly_promoted_run_serves_the_previous_snapshot_until_its_own_is_built(monkeypatch):
+    previous = svc.snapshot_payload()                # run 16 cached
+    monkeypatch.setattr(svc, "default_ids", lambda: (18, 10))
+    monkeypatch.setattr(svc, "_build_snapshot", lambda run, vrun: {"updatedAt": f"run {run}", "clusters": []})
+
+    assert svc.snapshot_payload() is previous
+    _wait_for_refreshes()
+    assert svc.snapshot_payload()["updatedAt"] == "run 18"

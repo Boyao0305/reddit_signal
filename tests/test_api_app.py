@@ -22,3 +22,12 @@ def test_serves_seedcast_from_the_frontend_build(tmp_path):
     assert "seedcast" in client.get("/").text
     assert client.get("/assets/app.js").status_code == 200
     assert client.get("/healthz").json() == {"ok": True}
+
+
+def test_large_responses_are_gzipped(tmp_path):
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "app.js").write_text("console.log(1);" * 500)
+    (tmp_path / "seedcast.html").write_text("<html>seedcast</html>")
+    client = TestClient(create_app(cfg(static_dir=str(tmp_path))))
+    r = client.get("/assets/app.js", headers={"Accept-Encoding": "gzip"})
+    assert r.headers.get("content-encoding") == "gzip"
