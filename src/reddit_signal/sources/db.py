@@ -224,6 +224,7 @@ def get_event_bundles_batch(
     limit: int = 100,
     only_unprocessed: bool = True,
     window: tuple[datetime, datetime] | None = None,
+    before: tuple[datetime, int] | None = None,
 ) -> list[EventBundle]:
     """Return parent events with their children, paginated.
 
@@ -233,6 +234,9 @@ def get_event_bundles_batch(
     With ``window=(start, end)`` only parents with ``start <= event_time < end`` are returned,
     **newest first** (see core/extraction_policy.py; served by ix_signal_events_parent_source_time).
     Without a window the order is insertion order (``signal_events.id``), as before.
+
+    ``before=(event_time, id)`` (window only) continues after the last parent of the previous batch, so a
+    long run does not re-scan every parent it has already processed.
     """
     window_sql = ""
     window_params: tuple = ()
@@ -240,6 +244,9 @@ def get_event_bundles_batch(
     if window is not None:
         window_sql = "AND se.event_time >= %s AND se.event_time < %s"
         window_params = (window[0], window[1])
+        if before is not None:
+            window_sql += " AND (se.event_time, se.id) < (%s, %s)"
+            window_params += (before[0], before[1])
         order_sql = "se.event_time DESC, se.id DESC"
     if only_unprocessed:
         _ensure_processed_signal_events_table()

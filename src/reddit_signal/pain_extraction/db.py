@@ -29,6 +29,7 @@ def get_event_bundles_batch_as_pwc(
     limit: int = 100,
     only_unprocessed: bool = True,
     window: "tuple[datetime, datetime] | None" = None,
+    cursor: "dict | None" = None,
 ) -> List[PostWithComments]:
     """Read Layer-2 signal_events as PostWithComments (drop-in replacement
     for ``get_posts_with_comments`` / ``get_unprocessed_posts_batch`` when
@@ -36,6 +37,8 @@ def get_event_bundles_batch_as_pwc(
 
     Skips parents that already have a pain_objects row for the given
     ``prompt_version`` (when ``only_unprocessed=True``).
+
+    ``cursor`` (a dict owned by the caller, window only) carries ``before`` from one batch to the next.
     """
     from reddit_signal.sources.db import get_event_bundles_batch
     from reddit_signal.pain_extraction.prompts.registry import get_prompt_converter
@@ -51,7 +54,11 @@ def get_event_bundles_batch_as_pwc(
         limit=limit,
         only_unprocessed=only_unprocessed,
         window=window,
+        before=cursor.get("before") if cursor is not None else None,
     )
+    if cursor is not None and bundles:
+        last = bundles[-1].parent   # oldest of the batch (newest-first order)
+        cursor["before"] = (last.event_time, last.id)
     return [converter(b) for b in bundles]
 
 

@@ -403,7 +403,8 @@ def _cmd_ingest_extract_source(
     window: "tuple[datetime, datetime] | None" = None,
 ) -> dict:
     use_signal_events = get_use_signal_events()
-    batch_size = 200 if not limit else min(limit, 200)
+    # Each batch waits for its slowest call; ~10 posts per worker keeps the workers busy.
+    batch_size = min(limit or 1000, max(200, min(1000, workers * 10)))
     last_id = 0
     total_extracted = 0
     total_errors = 0
@@ -421,6 +422,7 @@ def _cmd_ingest_extract_source(
         },
     )
 
+    cursor: dict = {}   # windowed runs continue after the previous batch instead of re-scanning it
     while True:
         batch_num += 1
         if use_signal_events:
@@ -433,6 +435,7 @@ def _cmd_ingest_extract_source(
                 limit=batch_size,
                 only_unprocessed=True,
                 window=window,
+                cursor=cursor if window is not None else None,
             )
         else:
             if window is not None:
