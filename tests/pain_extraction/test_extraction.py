@@ -128,6 +128,14 @@ def test_provider_pinning_from_settings(fake):
                                               "reasoning": {"effort": "low"}}
 
 
+def test_provider_pool_and_price_cap_from_settings(fake):
+    fake["settings"].update(OPENROUTER_PROVIDER_ONLY="venice/int4, deepinfra/bf16", OPENROUTER_MAX_PRICE="0.04,0.19")
+    fake["responses"] = [response("[]")]
+    extraction.extract_for_post(pwc())
+    assert fake["calls"][0]["extra_body"]["provider"] == {
+        "only": ["venice/int4", "deepinfra/bf16"], "max_price": {"prompt": 0.04, "completion": 0.19}}
+
+
 def test_no_provider_setting_means_default_routing(fake):
     fake["responses"] = [response("[]")]
     extraction.extract_for_post(pwc())

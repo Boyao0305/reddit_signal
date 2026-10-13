@@ -270,6 +270,10 @@ class _Retry(Exception):
     """Transient bad response: retry with backoff."""
 
 
+def _csv(value: str) -> list[str]:
+    return [p.strip() for p in value.split(",") if p.strip()]
+
+
 def request_options() -> dict:
     """max_tokens and OpenRouter provider routing, from system_settings."""
     try:
@@ -278,10 +282,20 @@ def request_options() -> dict:
         max_tokens = DEFAULT_MAX_TOKENS
     options: dict = {"max_tokens": max(256, min(max_tokens, MAX_TOKENS_CEILING))}
     extra: dict = {}
-    order = [p.strip() for p in runtime_settings.get_setting("OPENROUTER_PROVIDER_ORDER", "").split(",") if p.strip()]
+    order = _csv(runtime_settings.get_setting("OPENROUTER_PROVIDER_ORDER", ""))
+    only = _csv(runtime_settings.get_setting("OPENROUTER_PROVIDER_ONLY", ""))
+    max_price = _csv(runtime_settings.get_setting("OPENROUTER_MAX_PRICE", ""))
+    provider: dict = {}
     if order:
-        allow = runtime_settings.get_setting("OPENROUTER_ALLOW_FALLBACKS", "true").strip().lower() != "false"
-        extra["provider"] = {"order": order, "allow_fallbacks": allow}
+        provider["order"] = order
+        provider["allow_fallbacks"] = (
+            runtime_settings.get_setting("OPENROUTER_ALLOW_FALLBACKS", "true").strip().lower() != "false")
+    if only:  # OpenRouter load-balances across these, which raises throughput beyond one provider's limits
+        provider["only"] = only
+    if len(max_price) == 2:  # USD per million tokens: "prompt,completion"
+        provider["max_price"] = {"prompt": float(max_price[0]), "completion": float(max_price[1])}
+    if provider:
+        extra["provider"] = provider
     # Reasoning models are evaluated at effort "low"; at its default level gpt-oss-120b took ~60 s per
     # call and cost about 3x as much, with no better extractions.
     effort = runtime_settings.get_setting("EXTRACTION_REASONING_EFFORT", DEFAULT_REASONING_EFFORT).strip()
