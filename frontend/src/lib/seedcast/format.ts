@@ -23,10 +23,10 @@ export function formatCount(n: number): string {
   return n.toLocaleString('en-US')
 }
 
-/** "2026-10-05" -> "Oct 5, 2026"; returns the input when it does not parse. */
+/** "2026-10-05" or a full ISO timestamp -> "Oct 5, 2026"; returns the input when it does not parse. */
 export function formatDate(iso: string | null): string {
   if (!iso) return '[date]'
-  const d = new Date(`${iso}T00:00:00Z`)
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00Z`)
   if (Number.isNaN(d.getTime())) return iso
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
 }
@@ -53,6 +53,7 @@ function sentenceCase(text: string): string {
  * "[AI Assistant]: Unreliable…" / "[Productivity: Information overload…]" / "Self-improvement: Users…".
  */
 export function keywordOf(name: string): string {
+  if (name.includes(' | ')) return '' // unlabeled cluster: its name is member statements joined, not a topic
   const topic = name.replace(/^\s*\[/, '').split(/[:\]]/)[0].trim()
   const words = topic.split(/\s+/).filter(Boolean)
   const short = topic.length > MAX_KEYWORD_CHARS ? words.slice(0, 3).join(' ') : words.join(' ')

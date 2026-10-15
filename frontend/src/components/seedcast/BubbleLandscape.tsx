@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { bubbleLabel, keywordOf, momentumOf } from '../../lib/seedcast/format'
-import { packCircles } from '../../lib/seedcast/pack'
+import { selectBubbles } from '../../lib/seedcast/bubbles'
+import { packFixed } from '../../lib/seedcast/pack'
 import { AUDIENCE_FILL, SEED, wordOn } from '../../lib/seedcast/theme'
 import type { Audience, SeedcastCluster } from '../../lib/seedcast/types'
 import ClusterCaption from './ClusterCaption'
@@ -9,6 +10,8 @@ type ColorMode = 'momentum' | 'audience'
 
 const W = 1100
 const H = 600
+// The biggest cluster always gets maxRadius; smaller ones under minRatio of it are left to the list below.
+const BUBBLES = { maxRadius: 110, minRatio: 0.3, maxCount: 70 }
 
 function fillFor(c: SeedcastCluster, mode: ColorMode): string {
   if (mode === 'audience') return AUDIENCE_FILL[c.audience]
@@ -38,13 +41,17 @@ function ModeButton({ on, onClick, children }: { on: boolean; onClick: () => voi
   )
 }
 
-/** Packed-bubble view: circle area = posts in the last 4 weeks. */
+/** Packed-bubble view of the biggest clusters: circle area = posts in the last 4 weeks. */
 export default function BubbleLandscape({ clusters }: { clusters: SeedcastCluster[] }) {
   const [mode, setMode] = useState<ColorMode>('momentum')
   const [hoverId, setHoverId] = useState<number | null>(null)
 
-  const sorted = useMemo(() => clusters.slice().sort((a, b) => b.posts4w - a.posts4w), [clusters])
-  const layout = useMemo(() => packCircles(sorted.map((c) => Math.sqrt(c.posts4w) * 3), { width: W, height: H }), [sorted])
+  const bubbles = useMemo(() => {
+    const chosen = selectBubbles(clusters, BUBBLES)
+    const spots = packFixed(chosen.map((b) => b.r), { width: W, height: H })
+    return chosen.flatMap((b, i) => (spots[i] ? [{ cluster: b.cluster, p: spots[i]! }] : []))
+  }, [clusters])
+  const sorted = bubbles.map((b) => b.cluster)
   const active = sorted.find((c) => c.id === hoverId) ?? sorted[0]
   if (!active) return null
 
@@ -69,8 +76,7 @@ export default function BubbleLandscape({ clusters }: { clusters: SeedcastCluste
         </ul>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 block h-auto w-full" role="group" aria-label="Packed circle chart of pain clusters; circle area is pain posts in the last four weeks">
-        {sorted.map((c, i) => {
-          const p = layout[i]
+        {bubbles.map(({ cluster: c, p }) => {
           const fill = fillFor(c, mode)
           const label = bubbleLabel(keywordOf(c.name), p.r)
           return (

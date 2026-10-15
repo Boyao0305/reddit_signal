@@ -29,13 +29,16 @@ Here are representative pain statements from this cluster:
 {statements}
 
 Write a single concise label (10-15 words max) that captures the CORE shared pain theme.
-Format: "[Domain]: [core problem description]"
+Format: "[Keyword]: [core problem description]"
+
+The keyword is a specific 2-4 word name for the problem itself, the way people would search for it.
+Not a broad domain: "Invoice chasing", not "Finance"; "AI cheating detection", not "Education".
 
 Examples:
-- "Sales outreach: founders waste hours on manual prospecting with low reply rates"
-- "IT security: organizations lack unified tooling to detect credential theft"
-- "SaaS pricing: users frustrated by hidden fees and confusing tier structures"
-- "Content creation: AI-generated text misses intent and requires heavy editing"
+- "Invoice chasing: freelancers spend hours following up on late client payments"
+- "Cold outreach: founders get low reply rates from manual prospecting"
+- "Hidden SaaS fees: users frustrated by surprise charges and confusing tiers"
+- "AI writing quality: generated text misses intent and needs heavy editing"
 
 Return ONLY the label, nothing else."""
 
@@ -127,19 +130,34 @@ def _select_diverse_members(
     return [texts[i] for i in selected]
 
 
+LABEL_MAX_TOKENS = 300   # reasoning models spend part of the budget before answering
+LABEL_ATTEMPTS = 3
+LABEL_MAX_WORKERS = 16   # each worker also reads members from the database
+
+
 def _generate_label(client: OpenAI, cluster_id: int, statements: List[str], model_id: str) -> str:
-    """Call LLM to generate a concise cluster label."""
+    """Call LLM to generate a concise cluster label ("" if it fails)."""
+    from reddit_signal.pain_extraction.extraction import request_options
+
     numbered = "\n".join(f"{i+1}. {s[:200]}" for i, s in enumerate(statements))
     prompt = LABEL_PROMPT.format(statements=numbered)
+    options = request_options()   # reasoning effort and provider routing, as for extraction
+    options.pop("max_tokens", None)
 
     try:
-        resp = client.chat.completions.create(
-            model=model_id,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=100,
-            temperature=0.3,
-        )
-        label = resp.choices[0].message.content.strip()
+        label = ""
+        for _ in range(LABEL_ATTEMPTS):
+            resp = client.chat.completions.create(
+                model=model_id,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=LABEL_MAX_TOKENS,
+                temperature=0.3,
+                **options,
+            )
+            # With 100 tokens gpt-oss-120b spent the whole budget reasoning and returned no content.
+            label = ((resp.choices[0].message.content if resp.choices else None) or "").strip()
+            if label:
+                break
         # Clean up: remove quotes, markdown
         label = label.strip('"\'`')
         if label.startswith("- "):
@@ -157,7 +175,7 @@ def label_all_clusters(max_workers: int = 4, run_id: Optional[int] = None) -> di
     Returns {cluster_db_id: label_text}.
     """
     # Cap workers so we never exhaust the DB pool even if called with high defaults.
-    effective_workers = min(max_workers, 4)
+    effective_workers = min(max_workers, LABEL_MAX_WORKERS)
     if effective_workers != max_workers:
         logger.warning(
             "label_all_clusters max_workers capped from %d to %d to avoid DB pool exhaustion",

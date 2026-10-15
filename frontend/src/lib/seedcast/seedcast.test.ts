@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { buildFixtureClusters, buildFixtureDetail } from './fixtures'
-import { bubbleLabel, formatRatio, keywordOf, momentumOf, twoLines } from './format'
+import { bubbleLabel, formatDate, formatRatio, keywordOf, momentumOf, twoLines } from './format'
 import { AUDIENCE_FILL, SEED, wordOn } from './theme'
-import { packCircles } from './pack'
+import { packCircles, packFixed } from './pack'
+import { selectBubbles } from './bubbles'
 import { areaPath, linePath, scaleSeries } from './paths'
 import { rankMovers } from './rank'
 import { parseRoute } from './route'
@@ -113,6 +114,10 @@ describe('bubble keywords', () => {
     expect(keywordOf('[Work/Life Balance]: Commutes erode personal time.')).toBe('Work/Life balance') // first word as written
   })
 
+  it('gives no keyword for an unlabeled cluster (joined member statements)', () => {
+    expect(keywordOf('Home Assistant was too much work to set up. | Need a simple way to trigger it')).toBe('')
+  })
+
   it('shortens a topic that is really a sentence', () => {
     expect(keywordOf('[Users cannot reconcile invoices across many tools and lose hours]')).toBe('Users cannot reconcile')
   })
@@ -140,5 +145,38 @@ describe('bubble keywords', () => {
     expect(wordOn(AUDIENCE_FILL.B2B)).toBe('#F6B96B')
     expect(wordOn(AUDIENCE_FILL.B2C)).toBe('#2A0F52')
     expect(wordOn(AUDIENCE_FILL.Mixed)).toBe('#3A1670')
+  })
+})
+
+describe('bubble selection and fixed-scale packing', () => {
+  const cluster = (id: number, posts4w: number) => ({ ...buildFixtureClusters()[0], id, posts4w })
+
+  it('gives the biggest cluster the max radius whatever its count, and drops small ones', () => {
+    for (const top of [20, 2000]) {
+      const chosen = selectBubbles([cluster(1, top), cluster(2, top / 4), cluster(3, top / 100)], { maxRadius: 100, minRatio: 0.3, maxCount: 10 })
+      expect(chosen.map((b) => b.cluster.id)).toEqual([1, 2])   // 1% of the top is under the cutoff
+      expect(chosen[0].r).toBe(100)
+      expect(chosen[1].r).toBeCloseTo(50)
+    }
+  })
+
+  it('caps the count and skips clusters without recent posts', () => {
+    const many = Array.from({ length: 30 }, (_, i) => cluster(i, 100 - i))
+    expect(selectBubbles([...many, cluster(99, 0)], { maxRadius: 50, minRatio: 0, maxCount: 12 })).toHaveLength(12)
+  })
+
+  it('packs at the given scale, inside the canvas, leaving out what does not fit', () => {
+    const spots = packFixed([200, 150, 150, 150, 150, 150], { width: 1100, height: 600 })
+    expect(spots[0]).toMatchObject({ x: 550, y: 300, r: 200 })
+    const placed = spots.filter((p): p is NonNullable<typeof p> => p !== null)
+    expect(placed.length).toBeLessThan(spots.length)
+    for (const p of placed) {
+      expect(p.x - p.r).toBeGreaterThanOrEqual(8)
+      expect(p.y + p.r).toBeLessThanOrEqual(592)
+    }
+  })
+
+  it('formats full timestamps as dates', () => {
+    expect(formatDate('2026-10-15T13:40:27.281984+00:00')).toBe('Oct 15, 2026')
   })
 })

@@ -63,3 +63,36 @@ export function packCircles(radii: number[], opts: PackOptions): PackedCircle[] 
     r: p.r * k,
   }))
 }
+
+/**
+ * Greedy spiral packing at a fixed scale: radii are used as given (no rescaling), and a circle that
+ * finds no free spot inside the canvas is left out (null). `radii` should be sorted largest first.
+ */
+export function packFixed(radii: number[], opts: PackOptions): Array<PackedCircle | null> {
+  const squash = opts.squash ?? 0.58
+  const gap = opts.gap ?? 3
+  const pad = opts.padding ?? 8
+  const cx = opts.width / 2
+  const cy = opts.height / 2
+  const maxRad = Math.hypot(opts.width, opts.height) / 2
+  const placed: PackedCircle[] = []
+  const fits = (x: number, y: number, r: number) =>
+    x - r >= pad && x + r <= opts.width - pad && y - r >= pad && y + r <= opts.height - pad &&
+    placed.every((p) => {
+      const m = p.r + r + gap
+      return (p.x - x) ** 2 + (p.y - y) ** 2 >= m * m
+    })
+
+  return radii.map((r) => {
+    for (let ang = 0, rad = 0; rad <= maxRad; ang += 0.4, rad += 0.45) {
+      const x = cx + Math.cos(ang) * rad
+      const y = cy + Math.sin(ang) * rad * squash
+      if (fits(x, y, r)) {
+        const spot = { x, y, r }
+        placed.push(spot)
+        return spot
+      }
+    }
+    return null
+  })
+}
