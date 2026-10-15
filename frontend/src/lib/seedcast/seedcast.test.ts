@@ -151,18 +151,40 @@ describe('bubble keywords', () => {
 describe('bubble selection and fixed-scale packing', () => {
   const cluster = (id: number, posts4w: number) => ({ ...buildFixtureClusters()[0], id, posts4w })
 
-  it('gives the biggest cluster the max radius whatever its count, and drops small ones', () => {
+  const opts = { maxRadius: 100, minRadius: 9, featured: 2, medium: 3, mediumUntilRank: 10, small: 4 }
+  const ranked = (n: number, top: number) => Array.from({ length: n }, (_, i) => cluster(i + 1, Math.max(1, Math.round(top / (i + 1)))))
+
+  it('gives the biggest cluster the max radius whatever its count', () => {
     for (const top of [20, 2000]) {
-      const chosen = selectBubbles([cluster(1, top), cluster(2, top / 4), cluster(3, top / 100)], { maxRadius: 100, minRatio: 0.3, maxCount: 10 })
-      expect(chosen.map((b) => b.cluster.id)).toEqual([1, 2])   // 1% of the top is under the cutoff
+      const chosen = selectBubbles([cluster(1, top), cluster(2, top / 4)], opts)
       expect(chosen[0].r).toBe(100)
       expect(chosen[1].r).toBeCloseTo(50)
     }
   })
 
-  it('caps the count and skips clusters without recent posts', () => {
-    const many = Array.from({ length: 30 }, (_, i) => cluster(i, 100 - i))
-    expect(selectBubbles([...many, cluster(99, 0)], { maxRadius: 50, minRatio: 0, maxCount: 12 })).toHaveLength(12)
+  it('samples every size tier, not only the biggest', () => {
+    const chosen = selectBubbles(ranked(400, 4000), opts)
+    const ids = chosen.map((b) => b.cluster.id)
+    expect(ids.slice(0, 2)).toEqual([1, 2])                                  // featured
+    expect(ids.slice(2, 5).every((id) => id > 2 && id <= 10)).toBe(true)     // medium, ranks 3..10
+    expect(ids.slice(5).every((id) => id > 10)).toBe(true)                   // small, the rest
+    expect(chosen).toHaveLength(9)
+    expect(chosen[chosen.length - 1].r).toBeGreaterThanOrEqual(9)                       // never below minRadius
+  })
+
+  it('is deterministic and skips clusters without recent posts', () => {
+    const data = [...ranked(50, 500), cluster(999, 0)]
+    expect(selectBubbles(data, opts)).toEqual(selectBubbles(data.slice().reverse(), opts))
+    expect(selectBubbles(data, opts).some((b) => b.cluster.id === 999)).toBe(false)
+  })
+
+  it('puts the post count under the keyword when there is room', () => {
+    const big = bubbleLabel('Invoice chasing', 80, '212')!
+    expect(big.sub?.text).toBe('212')
+    expect(big.sub!.dy).toBeGreaterThan(Math.max(...big.dy))
+    const tight = bubbleLabel('Invoice chasing', 34, '1,234,567 posts')!   // too wide: keyword only
+    expect(tight.lines).toEqual(['Invoice', 'chasing'])
+    expect(tight.sub).toBeUndefined()
   })
 
   it('packs at the given scale, inside the canvas, leaving out what does not fit', () => {

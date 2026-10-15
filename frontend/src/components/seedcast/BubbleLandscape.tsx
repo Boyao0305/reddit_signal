@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { bubbleLabel, keywordOf, momentumOf } from '../../lib/seedcast/format'
+import { bubbleLabel, formatCount, keywordOf, momentumOf } from '../../lib/seedcast/format'
 import { selectBubbles } from '../../lib/seedcast/bubbles'
 import { packFixed } from '../../lib/seedcast/pack'
 import { AUDIENCE_FILL, SEED, wordOn } from '../../lib/seedcast/theme'
@@ -10,8 +10,8 @@ type ColorMode = 'momentum' | 'audience'
 
 const W = 1100
 const H = 600
-// The biggest cluster always gets maxRadius; smaller ones under minRatio of it are left to the list below.
-const BUBBLES = { maxRadius: 110, minRatio: 0.3, maxCount: 70 }
+// A sample across sizes at one scale: the biggest cluster always gets maxRadius (see lib/seedcast/bubbles).
+const BUBBLES = { maxRadius: 85, minRadius: 9, featured: 6, medium: 16, mediumUntilRank: 60, small: 100 }
 
 function fillFor(c: SeedcastCluster, mode: ColorMode): string {
   if (mode === 'audience') return AUDIENCE_FILL[c.audience]
@@ -78,12 +78,12 @@ export default function BubbleLandscape({ clusters }: { clusters: SeedcastCluste
       <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 block h-auto w-full" role="group" aria-label="Packed circle chart of pain clusters; circle area is pain posts in the last four weeks">
         {bubbles.map(({ cluster: c, p }) => {
           const fill = fillFor(c, mode)
-          const label = bubbleLabel(keywordOf(c.name), p.r)
+          const label = bubbleLabel(keywordOf(c.name), p.r, formatCount(c.posts4w))
           return (
             <a
               key={c.id}
               href={`#/cluster/${c.id}`}
-              aria-label={`${c.name}, ${c.posts4w} posts in the last 4 weeks`}
+              aria-label={`${keywordOf(c.name) || c.name}, ${c.posts4w} posts in the last 4 weeks`}
               onMouseEnter={() => setHoverId(c.id)}
               onFocus={() => setHoverId(c.id)}
             >
@@ -95,6 +95,11 @@ export default function BubbleLandscape({ clusters }: { clusters: SeedcastCluste
                       {line}
                     </text>
                   ))}
+                  {label.sub && (
+                    <text x={p.x} y={p.y + label.sub.dy} fontSize={label.sub.fontSize} fontWeight={500} opacity={0.8}>
+                      {label.sub.text}
+                    </text>
+                  )}
                 </g>
               )}
             </a>

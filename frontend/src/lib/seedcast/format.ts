@@ -65,29 +65,44 @@ export interface BubbleLabel {
   fontSize: number
   /** Baseline offsets from the circle centre, one per line. */
   dy: number[]
+  /** Optional smaller line under the keyword (e.g. the post count). */
+  sub?: { text: string; fontSize: number; dy: number }
 }
 
 const CHAR_WIDTH = 0.58 // average DM Sans bold glyph width, in em
 const MIN_FONT = 9
 const MAX_FONT = 22
+const SUB_SCALE = 0.82
 
-/** Keyword layout inside a circle of radius r: font grows with the bubble; null when it cannot fit. */
-export function bubbleLabel(keyword: string, r: number): BubbleLabel | null {
+/**
+ * Keyword layout inside a circle of radius r: font grows with the bubble; null when it cannot fit.
+ * With `sub`, a smaller second line is added when there is room for it.
+ */
+export function bubbleLabel(keyword: string, r: number, sub?: string): BubbleLabel | null {
   if (!keyword) return null
-  const fits = (lines: string[], size: number) =>
-    Math.max(...lines.map((l) => l.length)) * CHAR_WIDTH * size <= 1.6 * r && lines.length * 1.15 * size <= 1.3 * r
+  const height = (n: number, size: number, withSub: boolean) => (n + (withSub ? SUB_SCALE : 0)) * 1.15 * size
+  const fits = (lines: string[], size: number, withSub: boolean) =>
+    Math.max(...lines.map((l) => l.length), withSub && sub ? sub.length * SUB_SCALE : 0) * CHAR_WIDTH * size <= 1.6 * r &&
+    height(lines.length, size, withSub) <= 1.3 * r
   const slash = keyword.indexOf('/')
   const options = keyword.includes(' ')
     ? [[keyword], twoLines(keyword)]
     : slash > 0
       ? [[keyword], [keyword.slice(0, slash + 1), keyword.slice(slash + 1)]] // "Parenting/" + "Sleep"
       : [[keyword]]
-  for (let size = Math.min(MAX_FONT, Math.round(6 + r * 0.14)); size >= MIN_FONT; size -= 1) {
-    const lines = options.find((o) => fits(o, size))
-    if (lines) {
+  for (const withSub of sub ? [true, false] : [false]) {
+    for (let size = Math.min(MAX_FONT, Math.round(6 + r * 0.14)); size >= MIN_FONT; size -= 1) {
+      const lines = options.find((o) => fits(o, size, withSub))
+      if (!lines) continue
       const lh = 1.15 * size
-      const top = -((lines.length - 1) * lh) / 2 + 0.35 * size
-      return { lines, fontSize: size, dy: lines.map((_, i) => Math.round((top + i * lh) * 10) / 10) }
+      const top = -(height(lines.length, size, withSub) - lh) / 2 + 0.35 * size
+      const round = (v: number) => Math.round(v * 10) / 10
+      const label: BubbleLabel = { lines, fontSize: size, dy: lines.map((_, i) => round(top + i * lh)) }
+      if (withSub && sub) {
+        const subSize = Math.max(MIN_FONT - 1, Math.round(size * SUB_SCALE))
+        label.sub = { text: sub, fontSize: subSize, dy: round(top + (lines.length - 1) * lh + 1.1 * subSize + 0.15 * size) }
+      }
+      return label
     }
   }
   return null
