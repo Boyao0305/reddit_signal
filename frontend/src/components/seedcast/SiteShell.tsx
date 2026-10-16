@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 export type SeedcastNav = 'landscape' | 'movers' | 'compare' | 'about'
 
 const LIFT = {
-  md: { band: 'pb-[106px]', body: '-mt-[90px]' },
+  md: { band: 'pb-[134px]', body: '-mt-[90px]' },
   lg: { band: 'pb-[120px]', body: '-mt-[92px]' },
   sm: { band: 'pb-24', body: '-mt-16' },
 } as const
@@ -22,14 +22,12 @@ interface Props {
   aside?: ReactNode
   /** Optional line above the title (e.g. a back link). */
   eyebrow?: ReactNode
-  /** Optional short line under the title. */
-  intro?: ReactNode
   lift?: keyof typeof LIFT
   footerNote?: string
   children: ReactNode
 }
 
-export default function SiteShell({ active, title, aside, eyebrow, intro, lift = 'md', footerNote, children }: Props) {
+export default function SiteShell({ active, title, aside, eyebrow, lift = 'md', footerNote, children }: Props) {
   const l = LIFT[lift]
   return (
     <div className="min-h-screen bg-seed-bg font-seed text-seed-ink text-base antialiased">
@@ -69,7 +67,6 @@ export default function SiteShell({ active, title, aside, eyebrow, intro, lift =
             </h1>
             {aside}
           </div>
-          {intro && <p className="mb-0 mt-4 max-w-[760px] text-[17px] leading-[1.5] text-[#D9C8F5]">{intro}</p>}
         </div>
       </div>
       <div className={`mx-auto max-w-[1240px] px-6 pb-14 ${l.body}`}>

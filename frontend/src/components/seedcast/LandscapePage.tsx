@@ -19,7 +19,6 @@ export default function LandscapePage() {
     <SiteShell
       active="landscape"
       title="What people can't stop complaining about"
-      intro="Each circle is a group of similar complaints from Reddit and Hacker News. Size is how many posts it got in the last 4 weeks; colour is whether its share of all posts is rising, fading or flat."
       aside={<span className="pb-2 font-seedmono text-[13px] text-[#D9C8F5]">Updated {formatDate(data?.updatedAt ?? null)}</span>}
     >
       {loading || error || !clusters.length ? (
