@@ -22,12 +22,14 @@ interface Props {
   aside?: ReactNode
   /** Optional line above the title (e.g. a back link). */
   eyebrow?: ReactNode
+  /** Optional short line under the title. */
+  intro?: ReactNode
   lift?: keyof typeof LIFT
   footerNote?: string
   children: ReactNode
 }
 
-export default function SiteShell({ active, title, aside, eyebrow, lift = 'md', footerNote, children }: Props) {
+export default function SiteShell({ active, title, aside, eyebrow, intro, lift = 'md', footerNote, children }: Props) {
   const l = LIFT[lift]
   return (
     <div className="min-h-screen bg-seed-bg font-seed text-seed-ink text-base antialiased">
@@ -67,6 +69,7 @@ export default function SiteShell({ active, title, aside, eyebrow, lift = 'md', 
             </h1>
             {aside}
           </div>
+          {intro && <p className="mb-0 mt-4 max-w-[760px] text-[17px] leading-[1.5] text-[#D9C8F5]">{intro}</p>}
         </div>
       </div>
       <div className={`mx-auto max-w-[1240px] px-6 pb-14 ${l.body}`}>
