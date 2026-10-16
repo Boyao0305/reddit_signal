@@ -33,7 +33,7 @@ export default function ClusterCaption({ cluster: c }: { cluster: SeedcastCluste
       </div>
       <div className="grid min-w-0 flex-[1_1_420px] grid-cols-4 gap-px self-start overflow-hidden rounded-xl border border-seed-line bg-seed-line">
         <Stat value={formatCount(c.posts4w)} label="posts, 4 weeks" />
-        <Stat value={formatRatio(c.ratio)} label="vs prior 4 weeks" color={rising ? SEED.accent : undefined} />
+        <Stat value={formatRatio(c.ratio)} label="share vs prior 4 weeks" color={rising ? SEED.accent : undefined} />
         <Stat value={formatCount(c.total)} label="posts, total" />
         <Stat value={String(c.communities)} label="communities" />
         <Stat value={`${c.workaroundPct}%`} label="use a workaround" />

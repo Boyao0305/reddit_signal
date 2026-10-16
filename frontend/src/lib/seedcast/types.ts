@@ -14,7 +14,7 @@ export interface SeedcastCluster {
   icp: string | null
   posts4w: number
   total: number
-  /** Last 4 weeks vs prior 4 weeks. null when either window has < 3 posts. */
+  /** Share of all posts, last 4 weeks vs prior 4 weeks (1 = unchanged). null when either window has < 3 posts. */
   ratio: number | null
   /** 3-day burst lift vs prior 28 days. null when unavailable. */
   burst: number | null

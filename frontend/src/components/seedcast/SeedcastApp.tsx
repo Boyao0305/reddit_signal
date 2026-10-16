@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { parseRoute } from '../../lib/seedcast/route'
+import AboutPage from './AboutPage'
 import ClusterPage from './ClusterPage'
 import ComparePage from './ComparePage'
 import LandscapePage from './LandscapePage'
@@ -23,6 +24,8 @@ export default function SeedcastApp() {
       return <ComparePage />
     case 'cluster':
       return <ClusterPage id={route.id} />
+    case 'about':
+      return <AboutPage />
     default:
       return <LandscapePage />
   }

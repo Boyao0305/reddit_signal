@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-export type SeedcastNav = 'landscape' | 'movers' | 'compare'
+export type SeedcastNav = 'landscape' | 'movers' | 'compare' | 'about'
 
 const LIFT = {
   md: { band: 'pb-[106px]', body: '-mt-[90px]' },
@@ -12,6 +12,7 @@ const NAV: Array<{ key: SeedcastNav; label: string; href: string }> = [
   { key: 'landscape', label: 'Landscape', href: '#/' },
   { key: 'movers', label: 'Movers', href: '#/movers' },
   { key: 'compare', label: 'Compare', href: '#/compare' },
+  { key: 'about', label: 'About', href: '#/about' },
 ]
 
 interface Props {
@@ -21,12 +22,14 @@ interface Props {
   aside?: ReactNode
   /** Optional line above the title (e.g. a back link). */
   eyebrow?: ReactNode
+  /** Optional short line under the title. */
+  intro?: ReactNode
   lift?: keyof typeof LIFT
   footerNote?: string
   children: ReactNode
 }
 
-export default function SiteShell({ active, title, aside, eyebrow, lift = 'md', footerNote, children }: Props) {
+export default function SiteShell({ active, title, aside, eyebrow, intro, lift = 'md', footerNote, children }: Props) {
   const l = LIFT[lift]
   return (
     <div className="min-h-screen bg-seed-bg font-seed text-seed-ink text-base antialiased">
@@ -52,7 +55,7 @@ export default function SiteShell({ active, title, aside, eyebrow, lift = 'md', 
                 </a>
               ))}
               <a
-                href="https://github.com/boyao0305/reddit_signal"
+                href="https://github.com/Boyao0305/reddit_signal"
                 className="px-4 py-3 text-white no-underline opacity-80 hover:opacity-100"
               >
                 GitHub
@@ -66,12 +69,13 @@ export default function SiteShell({ active, title, aside, eyebrow, lift = 'md', 
             </h1>
             {aside}
           </div>
+          {intro && <p className="mb-0 mt-4 max-w-[760px] text-[17px] leading-[1.5] text-[#D9C8F5]">{intro}</p>}
         </div>
       </div>
       <div className={`mx-auto max-w-[1240px] px-6 pb-14 ${l.body}`}>
         {children}
         <footer className="flex flex-wrap justify-between gap-x-6 gap-y-2 px-1 pt-7 text-[13px] text-seed-muted">
-          <span>Reddit · Hacker News · X · YouTube · Facebook</span>
+          <span>Sources: Reddit · Hacker News</span>
           <span>{footerNote ?? 'Open source · No paywall'}</span>
         </footer>
       </div>

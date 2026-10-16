@@ -10,6 +10,7 @@ ANCHOR = date(2026, 9, 7)
 ROW = {
     "cluster_id": 24525, "label": "[AI Assistant]: unreliable performance", "audience_type": "mixed",
     "icp_hint": "AI assistant users", "pain_count_last_4w": 4, "member_count": 50, "velocity_4w_ratio": 0.364,
+    "velocity_4w_ratio_normalized": 0.61,
     "burst_lift": 9.75, "burst_label": "Low-volume spike", "subreddit_count": 16, "workaround_ratio": 0.2,
     "snapshot_at": datetime(2026, 10, 1, 5, 25, tzinfo=timezone.utc),
     # Internal scores that must never reach the public payload:
@@ -57,6 +58,11 @@ def test_snapshot_exposes_no_internal_scores_or_usernames():
     c = svc.snapshot_payload()["clusters"][0]
     assert set(c) == {"id", "name", "audience", "statement", "icp", "posts4w", "total", "ratio", "burst",
                       "bursting", "communities", "topCommunity", "firstSeen", "workaroundPct", "series"}
+
+
+def test_momentum_is_relative_to_all_posts():
+    # Raw last-4w / prior-4w was 0.364; relative to the whole corpus it is 0.61.
+    assert svc.snapshot_payload()["clusters"][0]["ratio"] == 0.61
 
 
 def test_detail_resolves_the_public_id():

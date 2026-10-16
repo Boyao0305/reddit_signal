@@ -109,7 +109,9 @@ def _snapshot_rows(run: int, vrun: int) -> list[dict[str, Any]]:
 
 
 def _cluster(row: dict[str, Any], public_id: int, summary: dict[str, Any], series: list[float]) -> dict[str, Any]:
-    ratio = row.get("velocity_4w_ratio")
+    # Momentum relative to all posts: the raw ratio follows total volume, which moves with extraction
+    # coverage (backfilled history vs the daily cap), so it showed nearly every cluster as fading.
+    ratio = row.get("velocity_4w_ratio_normalized")
     burst = row.get("burst_lift")
     workaround = row.get("workaround_ratio")
     return {

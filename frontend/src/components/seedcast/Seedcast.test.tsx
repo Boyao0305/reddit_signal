@@ -13,6 +13,7 @@ vi.mock('../../api/seedcast', () => ({
 import ClusterRowList from './ClusterRowList'
 import BubbleLandscape from './BubbleLandscape'
 import MoversPage from './MoversPage'
+import AboutPage from './AboutPage'
 
 afterEach(cleanup)
 
@@ -53,5 +54,19 @@ describe('MoversPage', () => {
     await waitFor(() => expect(document.querySelectorAll('a[href^="#/cluster/"]').length).toBeGreaterThan(10))
     fireEvent.click(screen.getByRole('button', { name: 'Bursting' }))
     await waitFor(() => expect(screen.getAllByText(/× burst/).length).toBeGreaterThan(0))
+  })
+})
+
+describe('AboutPage', () => {
+  it('says what the site is and who built it, and lists only the real sources', () => {
+    render(<AboutPage />)
+    expect(screen.getByText(/reads Reddit and Hacker News every day/)).toBeTruthy()
+    expect(screen.getByText('Boyao Xu')).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'LinkedIn' }).getAttribute('href')).toBe('https://www.linkedin.com/in/boyaoxu')
+    expect(screen.getByRole('link', { name: 'About' }).getAttribute('aria-current')).toBe('page')
+    expect(screen.getByText('Sources: Reddit · Hacker News')).toBeTruthy()
+    const github = screen.getAllByRole('link', { name: 'GitHub' }).map((a) => a.getAttribute('href'))
+    expect(github).toContain('https://github.com/Boyao0305/reddit_signal')   // nav: the repo
+    expect(github).toContain('https://github.com/Boyao0305')                 // author line: the profile
   })
 })

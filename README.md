@@ -4,6 +4,15 @@ reddit_signal reads Reddit and Hacker News discussions, extracts the problems pe
 points"), groups similar complaints into clusters, and tracks how each cluster grows or fades over time.
 It powers [Seedcast](https://seedcast.co), a public read-only view of the clusters.
 
+## Background
+
+I built this between April and July 2026 as the discovery half of Seedcast: find problems people keep
+describing, use AI to build apps against the high-pain, low-competition ones, and let the apps' results
+validate and calibrate the predictions. Building was cheap, but getting each app in front of users cost too
+much, so I stopped building apps in July. The pipeline and the public map at seedcast.co still run.
+
+## How it works
+
 ```
 Reddit (Arctic Shift) ─┐                                     ┌─ daily: assign new pains to the live clusters
                        ├─ fetch ─ project ─ extract ─ embed ─┤
@@ -11,8 +20,6 @@ Hacker News API ───────┘                                     └
                                                                        │
                                      public API + Seedcast site ◄──────┘
 ```
-
-## How it works
 
 1. **Fetch.** Posts and comments from a watchlist of subreddits (via the
    [Arctic Shift](https://arctic-shift.photon-reddit.com) archive) and from Hacker News.
@@ -28,7 +35,7 @@ Hacker News API ───────┘                                     └
 6. **Assign (daily).** New pain points join the nearest live cluster when they are similar enough, so weekly
    volumes stay current between monthly runs.
 7. **Publish.** A read-only API (`/api/public/snapshot`, `/api/public/clusters/{id}`) feeds the Seedcast
-   site: cluster size, momentum (last 4 weeks vs the 4 before), audience, communities and quotes. Usernames
+   site: cluster size, momentum (share of all posts, last 4 weeks vs the 4 before), audience, communities and quotes. Usernames
    and internal scores are never exposed.
 
 ## Architecture

@@ -43,7 +43,7 @@ export default function ClusterPage({ id }: { id: number }) {
   const stats = [
     { value: formatCount(c.total), label: 'posts, all time' },
     { value: formatCount(c.posts4w), label: 'posts, last 4 weeks' },
-    { value: formatRatio(c.ratio), label: 'vs prior 4 weeks', color: rising ? SEED.accent : undefined },
+    { value: formatRatio(c.ratio), label: 'share vs prior 4 weeks', color: rising ? SEED.accent : undefined },
     { value: String(c.communities), label: 'communities' },
     { value: `${c.workaroundPct}%`, label: 'describe a workaround' },
   ]

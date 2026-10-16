@@ -119,7 +119,7 @@ export default function ComparePage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3.5">
                   <Metric value={formatCount(c.posts4w)} label="posts, 4 weeks" />
-                  <Metric value={formatRatio(c.ratio)} label="vs prior 4" color={momentumOf(c.ratio) === 'fading' ? SEED.fadeInk : SEED.accent} />
+                  <Metric value={formatRatio(c.ratio)} label="share vs prior 4" color={momentumOf(c.ratio) === 'fading' ? SEED.fadeInk : SEED.accent} />
                   <Metric value={formatCount(c.total)} label="posts, total" />
                   <Metric value={String(c.communities)} label="communities" />
                 </div>

@@ -3,7 +3,60 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Seedcast</title>
+    <title>Seedcast: what people can't stop complaining about</title>
+    <meta
+      name="description"
+      content="A public map of the problems people describe on Reddit and Hacker News, extracted by an LLM, grouped into clusters and tracked week by week. Built by Boyao Xu."
+    />
+    <link rel="canonical" href="https://seedcast.co/" />
+    <meta name="author" content="Boyao Xu" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Seedcast" />
+    <meta property="og:url" content="https://seedcast.co/" />
+    <meta property="og:title" content="Seedcast: what people can't stop complaining about" />
+    <meta
+      property="og:description"
+      content="Problems from Reddit and Hacker News, extracted by an LLM, grouped into clusters and tracked week by week."
+    />
+    <meta property="og:image" content="https://seedcast.co/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Seedcast: what people can't stop complaining about" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:creator" content="@boyaoxu_" />
+    <meta name="twitter:title" content="Seedcast: what people can't stop complaining about" />
+    <meta
+      name="twitter:description"
+      content="Problems from Reddit and Hacker News, extracted by an LLM, grouped into clusters and tracked week by week."
+    />
+    <meta name="twitter:image" content="https://seedcast.co/og-image.png" />
+
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#3A1670" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Seedcast",
+        "url": "https://seedcast.co/",
+        "description": "A public map of the problems people describe on Reddit and Hacker News, extracted by an LLM, grouped into clusters and tracked week by week.",
+        "author": {
+          "@type": "Person",
+          "name": "Boyao Xu",
+          "sameAs": [
+            "https://www.linkedin.com/in/boyaoxu",
+            "https://github.com/Boyao0305",
+            "https://x.com/boyaoxu_"
+          ]
+        }
+      }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -12,6 +65,16 @@
     />
   </head>
   <body>
+    <noscript>
+      <h1>Seedcast: what people can't stop complaining about</h1>
+      <p>
+        Seedcast reads Reddit and Hacker News every day and pulls out the problems people describe. Similar complaints
+        are grouped into clusters, and each cluster is tracked week by week. Built by Boyao Xu
+        (<a href="https://www.linkedin.com/in/boyaoxu">LinkedIn</a>, <a href="https://github.com/Boyao0305">GitHub</a>).
+        The code is open source: <a href="https://github.com/Boyao0305/reddit_signal">github.com/Boyao0305/reddit_signal</a>.
+        This site needs JavaScript to show the map.
+      </p>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/seedcastMain.tsx"></script>
   </body>

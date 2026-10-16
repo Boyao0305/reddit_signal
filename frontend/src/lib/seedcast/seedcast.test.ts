@@ -93,6 +93,7 @@ describe('format and route', () => {
     expect(parseRoute('')).toEqual({ name: 'landscape' })
     expect(parseRoute('#/movers')).toEqual({ name: 'movers' })
     expect(parseRoute('#/compare/')).toEqual({ name: 'compare' })
+    expect(parseRoute('#/about')).toEqual({ name: 'about' })
     expect(parseRoute('#/cluster/12')).toEqual({ name: 'cluster', id: 12 })
     expect(parseRoute('#/cluster/x')).toEqual({ name: 'landscape' })
   })
