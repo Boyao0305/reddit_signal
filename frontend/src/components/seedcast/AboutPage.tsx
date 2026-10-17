@@ -1,9 +1,21 @@
 import SiteShell from './SiteShell'
 
-const LINKS = [
-  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/boyaoxu' },
-  { label: 'GitHub', href: 'https://github.com/Boyao0305' },
-  { label: 'benchology.co', href: 'https://benchology.co' },
+const PEOPLE = [
+  {
+    name: 'Boyao Xu',
+    links: [
+      { label: 'LinkedIn', href: 'https://www.linkedin.com/in/boyaoxu' },
+      { label: 'GitHub', href: 'https://github.com/Boyao0305' },
+      { label: 'benchology.co', href: 'https://benchology.co' },
+    ],
+  },
+  {
+    name: 'Linzzi Ji',
+    links: [
+      { label: 'LinkedIn', href: 'https://www.linkedin.com/in/linzzi-ji-2627b032a/' },
+      { label: 'GitHub', href: 'https://github.com/yzz0806' },
+    ],
+  },
 ]
 
 export default function AboutPage() {
@@ -30,17 +42,21 @@ export default function AboutPage() {
             </a>{' '}
             (MIT).
           </p>
-          <p className="m-0 border-t border-seed-line pt-5 text-seed-ink">
-            <span className="font-bold">Boyao Xu</span>
-            {LINKS.map((l) => (
-              <span key={l.href}>
-                {' · '}
-                <a href={l.href} className="font-semibold text-seed-accent">
-                  {l.label}
-                </a>
-              </span>
+          <div className="space-y-2 border-t border-seed-line pt-5 text-seed-ink">
+            {PEOPLE.map((person) => (
+              <p key={person.name} className="m-0">
+                <span className="font-bold">{person.name}</span>
+                {person.links.map((l) => (
+                  <span key={l.href}>
+                    {' · '}
+                    <a href={l.href} className="font-semibold text-seed-accent">
+                      {l.label}
+                    </a>
+                  </span>
+                ))}
+              </p>
             ))}
-          </p>
+          </div>
         </div>
       </section>
     </SiteShell>

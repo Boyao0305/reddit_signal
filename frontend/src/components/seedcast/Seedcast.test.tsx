@@ -62,11 +62,14 @@ describe('AboutPage', () => {
     render(<AboutPage />)
     expect(screen.getByText(/reads Reddit and Hacker News every day/)).toBeTruthy()
     expect(screen.getByText('Boyao Xu')).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'LinkedIn' }).getAttribute('href')).toBe('https://www.linkedin.com/in/boyaoxu')
+    expect(screen.getByText('Linzzi Ji')).toBeTruthy()
+    const linkedin = screen.getAllByRole('link', { name: 'LinkedIn' }).map((a) => a.getAttribute('href'))
+    expect(linkedin).toEqual(['https://www.linkedin.com/in/boyaoxu', 'https://www.linkedin.com/in/linzzi-ji-2627b032a/'])
     expect(screen.getByRole('link', { name: 'About' }).getAttribute('aria-current')).toBe('page')
     expect(screen.getByText('Sources: Reddit · Hacker News')).toBeTruthy()
     const github = screen.getAllByRole('link', { name: 'GitHub' }).map((a) => a.getAttribute('href'))
     expect(github).toContain('https://github.com/Boyao0305/reddit_signal')   // nav: the repo
     expect(github).toContain('https://github.com/Boyao0305')                 // author line: the profile
+    expect(github).toContain('https://github.com/yzz0806')
   })
 })
